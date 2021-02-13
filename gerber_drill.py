@@ -31,7 +31,8 @@ def def_logger(*args):
     r = ""
     for t in args:
         r = r + str(t) + " "
-    print r
+    print(r)
+
 def GenGerberDrill(board = None, split_G85 = 0.2, plotDir = "plot/", plotReference = True, logger = def_logger):
 	if not board:
 		board = GetBoard()
@@ -265,7 +266,7 @@ def SplitSlotInDrill(drillPath, newfilename = True,step = 0.2):
 					hn,hs = HoleSize(line)
 					if hn and hs:
 						holes[hn+'\n'] = hs
-					if holes.has_key(line):
+					if holes.__contains__(line):
 						curHolesSize = holes[line]
 					step = 0.2
 					if curHolesSize:

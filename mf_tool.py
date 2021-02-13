@@ -5,11 +5,11 @@ import csv
 import re
 import sys
 import os
-import gerber_drill as gd
 import wx
 import io
-import loadnet
 import traceback
+from . import loadnet
+from . import gerber_drill as gd
 
 class RefBuilder:
     ''' RefBuilder use to re-build the module referrence number
@@ -27,7 +27,7 @@ class RefBuilder:
     def collect(self, ref):
         m = self.patten.match(ref)
         if m:
-            if not self.refMap.has_key(m.group(1)):
+            if not self.refMap.__contains__(m.group(1)):
                 self.refMap[m.group(1)] = m.group(2)
             else:
                 max = self.refMap[m.group(1)]
@@ -39,12 +39,12 @@ class RefBuilder:
     def build(self, oldRef):
         m = re.match(r'([a-zA-Z]+)\s*(\d+)',oldRef)
         if not m:
-            print 'Ref is invalid %s'%oldRef
+            print(f'Ref is invalid {oldRef}')
             return None
-        if self.builtMap.has_key(oldRef):
+        if self.builtMap.__contains__(oldRef):
             return self.builtMap[oldRef]
         newRef = ''
-        if not self.refMap.has_key(m.group(1)):
+        if not self.refMap.__contains__(m.group(1)):
             self.refMap[m.group(1)] = m.group(2)
             newRef = oldRef
         else:
@@ -55,24 +55,7 @@ class RefBuilder:
         self.builtMap[oldRef] = newRef
         return newRef
     def Show(self):
-        print self.refMap
-        
-def testRefBuilder():
-    rb = RefBuilder()
-    rb.collects(['R1','R2','R14', 'R10', 'D1', 'D2', 'U3', 'U2', 'U1'])
-    rb.Show()
-    print 'R1 -> %s'%rb.build('R1')
-    print 'R2 -> %s'%rb.build('R2')
-    print 'R3 -> %s'%rb.build('R3')
-    print 'U1 -> %s'%rb.build('U1')
-    print 'U2 -> %s'%rb.build('U2')
-    print 'X2 -> %s'%rb.build('X2')
-    print 'X1 -> %s'%rb.build('X1')
-    print 'R? -> %s'%rb.build('R?')
-    print 'R1 -> %s'%rb.build('R1')
-    print 'R2 -> %s'%rb.build('R2')
-    print 'X2 -> %s'%rb.build('X2')
-    rb.Show()
+        print(self.refMap)
 
 # Get Board Bounding rect by the margin layer element
 #def GetBoardArea(brd = None, marginLayer = pcbnew.Margin):
@@ -112,19 +95,19 @@ def GetBoardBound(brd = None, marginLayer = pcbnew.Edge_Cuts):
                 d = pcbnew.Cast_to_DRAWSEGMENT(dwg)
             w = d.GetWidth()
             box = d.GetBoundingBox()
-            box.SetX(box.GetX() + w/2)
-            box.SetY(box.GetY() + w/2)
-            box.SetWidth(box.GetWidth() - w)
-            box.SetHeight(box.GetHeight() - w)
+            box.SetX(int(box.GetX() + w/2))
+            box.SetY(int(box.GetY() + w/2))
+            box.SetWidth(int(box.GetWidth() - w))
+            box.SetHeight(int(box.GetHeight() - w))
             if rect:
                 rect.Merge(box)
             else:
                 rect = box
     w = 2
-    rect.SetX(rect.GetX() + w/2)
-    rect.SetY(rect.GetY() + w/2)
-    rect.SetWidth(rect.GetWidth() - w)
-    rect.SetHeight(rect.GetHeight() - w)
+    rect.SetX(int(rect.GetX() + w/2))
+    rect.SetY(int(rect.GetY() + w/2))
+    rect.SetWidth(int(rect.GetWidth() - w))
+    rect.SetHeight(int(rect.GetHeight() - w))
     return rect
 
 def GetOtherBoard(brd):
@@ -208,9 +191,9 @@ class BoardItems:
         #print 'off is:', off
         for item in self.orgItems:
             item.Move(off)
-        print 'Move item in ', self.ShowRect(), 'off = (', off.x/1000000, ',' ,off.y/1000000,')'
+        print(f'Move item in {self.ShowRect()} off = ({off.x/1000000},{off.y/1000000})')
         self.rect.Move(off)
-        print 'Result is ', self.ShowRect()
+        print(f'Result is {self.ShowRect()}')
         
     def Clone(self, brd = None):
         if not brd:
@@ -237,7 +220,7 @@ class BoardItems:
         if not brd:
             brd = pcbnew.GetBoard()
         if brd == self.brd:
-            print 'Same board, do nothing'
+            print('Same board, do nothing')
         for item in self.orgItems:
             self.brd.Remove(item)
             brd.Add(item)
@@ -316,26 +299,24 @@ class BOMItem:
         #    kv = kv[0:kv.rfind('[')]
         
         self.netKey = kv + "&" + footprint
-        if not isinstance(self.netKey, unicode):
-            self.netKey = unicode(self.netKey)
         self.partNumber = ""
         self.desc = "desc"
         self.url = ""
         self.libRef = "libref"
         if netList:
-            if netList.has_key(self.netKey):
+            if netList.__contains__(self.netKey):
                 comp = netList[self.netKey]
-                if comp.has_key('partNumber'):
+                if comp.__contains__('partNumber'):
                     self.partNumber = comp['partNumber']
-                if comp.has_key('description'):
+                if comp.__contains__('description'):
                     self.desc = comp['description']
-                if comp.has_key('datasheet'):
+                if comp.__contains__('datasheet'):
                     self.url = comp['datasheet']
-                if comp.has_key('comment'):
+                if comp.__contains__('comment'):
                     self.libRef = self.value
                     self.value = comp['comment']
             else:
-                print "fail to find ", self.netKey, " in net list"
+                print(f"fail to find {self.netKey} in net list")
         
     def Output(self, out = None):
         refs = ''
@@ -376,11 +357,11 @@ def GenBOM(brd = None, layer = pcbnew.F_Cu, type = 1, ExcludeRefs = [], ExcludeV
             f = footPrintName(mod)
             r = mod.GetReference()
             vf = v + f
-            if bomList.has_key(vf):
+            if bomList.__contains__(vf):
                 bomList[vf].AddRef(r)
             else:
                 bomList[vf] = BOMItem(r,f,v, mod.GetPadCount(), netList)
-    print 'there are ', len(bomList), ' items at layer ', layer
+    print(f'there are {len(bomList)} items at layer {layer}')
     return sorted(bomList.values(), key = lambda item: item.refs[0])
 
 def layerName(layerId):
@@ -402,7 +383,7 @@ class POSItem:
             self.PadX = toMM(pad.GetPosition().x-offx)
             self.PadY = toMM(offy - pad.GetPosition().y)
         else:
-            print 'Pad1 not found for mod'
+            print('Pad1 not found for mod')
             self.PadX = self.MidX
             self.PadY = self.MidY
         self.rot = int(mod.GetOrientation()/10)
@@ -438,7 +419,7 @@ def PrintBOM(boms):
     OutputBOMHeader()
     i = 1
     for bom in boms:
-       print 'BOM items for BOM', i
+       print(f'BOM items for BOM {i}')
        i = i + 1
        for k,v in bom.items():
            v.Output()
@@ -446,7 +427,7 @@ def PrintPOS(Poses):
     OutputPosHeader()
     i = 1
     for pos in Poses:
-       print 'Pos items ', i
+       print(f'Pos items {i}')
        i = i+ 1
        for v in pos:
            v.Output()
@@ -454,13 +435,13 @@ def CollectItemByName(filename = None):
     try:
         brd = pcbnew.LoadBoard(filename)
     except IOError:
-        print 'Can not open ', filename
+        print('Can not open ' + filename)
         filename = os.path.split(pcbnew.GetBoard().GetFileName())[0] + '\\' + filename
-        print 'Try to open ', filename
+        print('Try to open ' + filename)
     try:
         brd = pcbnew.LoadBoard(filename)
     except IOError:
-        print 'Can not open ', filename
+        print('Can not open ' + filename)
         return None
     bi = BoardItems()
     bi.Collect(brd)
@@ -490,11 +471,7 @@ class UnicodeWriter:
     def writerow(self, data):
         for e in data:
             self.file.write(u'"')
-            #print isinstance(e, unicode)
-            if not isinstance(e, unicode):
-                self.file.write(unicode(e))
-            else:
-                self.file.write(e)
+            self.file.write(e)
             self.file.write(u'",')
         self.file.write(u'\n')
     
@@ -504,7 +481,7 @@ def OpenCSV(fileName):
         f = io.open(fileName, 'w+', encoding="utf-8")
     except IOError:
         e = "Can't open output file for writing: " + fileName
-        print( __file__, ":", e, sys.stderr )
+        print(f"{__file__} {e}")
         f = sys.stdout
     #out = csv.writer( f, lineterminator='\n', delimiter=',', quotechar='\"', quoting=csv.QUOTE_MINIMAL )
     out = UnicodeWriter(f)
@@ -520,7 +497,7 @@ def def_logger(*args):
     r = ""
     for t in args:
         r = r + str(t) + " "
-    print r
+    print(r)
 
     
 def GenMFDoc(SplitTopAndBottom = False, ExcludeRef = [], ExcludeValue = [], brd = None, needGenBOM = True, needGenPos = True, logger = def_logger):
@@ -647,7 +624,7 @@ def GenMFDoc(SplitTopAndBottom = False, ExcludeRef = [], ExcludeValue = [], brd 
     return bomName, posName
     
 def version():
-    print "1.1"
+    print ("1.1")
 
 def GenSMTFiles():
     #reload(sys)
@@ -677,7 +654,7 @@ class MFDialog(wx.Dialog):
 
         self.static_text = wx.StaticText(self, -1, 'Log:', style=wx.ALIGN_CENTER, pos = (15, 70))
         self.area_text = wx.TextCtrl(self, -1, '', size=(770, 300), pos = (15, 90),
-                                     style=(wx.TE_MULTILINE | wx.TE_AUTO_SCROLL | wx.TE_DONTWRAP| wx.TE_READONLY))
+                                     style=(wx.TE_MULTILINE | wx.TE_DONTWRAP| wx.TE_READONLY))
 
         self.btnGen = wx.Button(self, label = "Generate Manufacture Docs", pos=(400, 30))
         self.Bind(wx.EVT_BUTTON, self.Onclick, self.btnGen)

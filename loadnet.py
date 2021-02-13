@@ -1,7 +1,7 @@
-import kisexp as sexp
-import pcbnew as pn
 import io
 import traceback
+import pcbnew as pn
+from . import kisexp as sexp
 
 def loadNet(brd = None):
     if not brd:
@@ -12,11 +12,11 @@ def loadNet(brd = None):
 
 def toStr(v):
     return v
-    
+
 def parseComp(comp):
     r = {}
     if comp[0] != "comp":
-        print "Parse comp error"
+        print("Parse comp error")
         return None
     for i in range(1, len(comp)):
         key = comp[i][0]
@@ -56,9 +56,6 @@ def loadNetFile(fileName):
             r[c['value'] + "&" + c['footprint']] = c
         return r
     except Exception as e:
-        print "Fail to load netlist:"
+        print("Fail to load netlist:")
         traceback.print_exc()
         return None
-            
-            
-            
